@@ -78,6 +78,7 @@ class Classifier(nn.Module):
         super().__init__()
         self.clf = nn.Sequential()
         self.clf.add_module("%s_lin0" %(name), nn.Linear(in_channels, int(in_channels*1.5)))
+        self.clf.add_module("%s_act0" %(name), nn.ReLU())
         self.clf.add_module("%s_lin1" %(name), nn.Linear(int(in_channels*1.5), out_channels))
 
     def forward(self, x):
@@ -93,15 +94,19 @@ class GhostBlock(nn.Module):
         self.stride = stride
 
         self.ghost = nn.Sequential()
-        self.ghost.add_module("%s_ghost1" %(name), GhostModule(in_channels, ext_channels, kernel_size1, kernel_size2, ratio, 1, True, name="%s_ghost_b1" %(name)))
+        self.ghost.add_module("%s_ghost1" %(name), GhostModule(in_channels, ext_channels, \
+            kernel_size1, kernel_size2, ratio, 1, True, name="%s_ghost_b1" %(name)))
         if(self.stride == 2):
-            self.ghost.add_module("%s_conv_dw" %(name), nn.Conv2d(ext_channels, ext_channels, kernel_size1, stride, groups=ext_channels, padding=kernel_size1//2))
+            self.ghost.add_module("%s_conv_dw" %(name), nn.Conv2d(ext_channels, ext_channels, \
+                kernel_size1, stride, groups=ext_channels, padding=kernel_size1//2))
             self.ghost.add_module("%s_bn_dw" %(name), nn.BatchNorm2d(ext_channels))
-        self.ghost.add_module("%s_ghost2" %(name), GhostModule(ext_channels, out_channels, kernel_size1, kernel_size2, ratio, 1, False, name="%s_ghost_b2" %(name)))
+        self.ghost.add_module("%s_ghost2" %(name), GhostModule(ext_channels, out_channels, \
+            kernel_size1, kernel_size2, ratio, 1, False, name="%s_ghost_b2" %(name)))
 
         if(self.stride == 2):
             self.shortcut = nn.Sequential()
-            self.shortcut.add_module("%s_conv_resi" %(name), nn.Conv2d(in_channels, out_channels, kernel_size1, stride, groups=1, padding=kernel_size1//2))
+            self.shortcut.add_module("%s_conv_resi" %(name), nn.Conv2d(in_channels, out_channels, \
+                kernel_size1, stride, groups=1, padding=kernel_size1//2))
             self.shortcut.add_module("%s_bn_resi" %(name), nn.BatchNorm2d(out_channels))
 
     def forward(self, x):
@@ -120,12 +125,14 @@ class GhostModule(nn.Module):
         new_channels = group_channels*(ratio-1)
 
         self.conv_prime = nn.Sequential()
-        self.conv_prime.add_module("%s_conv_p" %(name), nn.Conv2d(in_channels, group_channels, kernel_size1, stride, padding=kernel_size1//2)) # primary convolution (ordinary)
+        self.conv_prime.add_module("%s_conv_p" %(name), nn.Conv2d(in_channels, group_channels, \
+            kernel_size1, stride, padding=kernel_size1//2)) # primary convolution (ordinary)
         self.conv_prime.add_module("%s_bn_p" %(name), nn.BatchNorm2d(group_channels))
         self.conv_prime.add_module("%s_act_p" %(name), nn.ReLU())
 
         self.conv_cheap = nn.Sequential()
-        self.conv_cheap.add_module("%s_conv_c" %(name), nn.Conv2d(group_channels, new_channels, kernel_size2, 1, groups=group_channels, padding=kernel_size2//2)) # primary convolution (ordinary)
+        self.conv_cheap.add_module("%s_conv_c" %(name), nn.Conv2d(group_channels, new_channels, \
+            kernel_size2, 1, groups=group_channels, padding=kernel_size2//2)) # primary convolution (ordinary)
         self.conv_cheap.add_module("%s_bn_c" %(name), nn.BatchNorm2d(new_channels))
         self.conv_cheap.add_module("%s_act_c" %(name), nn.ReLU())
 
